@@ -6,7 +6,7 @@
           flat
           dense
           round
-          @click="leftDrawerOpen = !leftDrawerOpen"
+          @click="toggleMenu"
         >
           <q-icon name="view_list" />
         </q-btn>
@@ -18,7 +18,7 @@
           flat
           dense
           round
-          @click="rightDrawerOpen = !rightDrawerOpen"
+          @click="toggleSettings"
         >
           <q-icon name="settings" />
         </q-btn>
@@ -26,7 +26,8 @@
     </q-header>
 
     <q-drawer
-      v-model="leftDrawerOpen"
+      :value="menu"
+      @hide="CLOSE_MENU"
       bordered
       content-class="bg-grey-2"
     >
@@ -35,7 +36,7 @@
           <q-item>
             <q-item-section>
               <q-input
-                @keyup.enter="onAddRss()"
+                @keyup.enter="onAddRss(source)"
                 v-model="source"
                 color="teal"
                 label="Adds rss source"
@@ -46,7 +47,7 @@
               </q-input>
             </q-item-section>
             <q-item-section avatar>
-              <q-btn @click="onAddRss()" round dense flat icon="add" />
+              <q-btn @click="onAddRss(source)" round dense flat icon="add" />
             </q-item-section>
           </q-item>
           <q-item
@@ -65,12 +66,31 @@
               <q-btn @click="onConfirm(item, index)" round dense flat icon="clear" />
             </q-item-section>
           </q-item>
+          <q-item>
+            <q-item-section>
+              <span class="text-h5">Popular rss feed</span>
+            </q-item-section>
+          </q-item>
+          <q-item
+            v-for="(item, index) in popular"
+            :key="`popular-${index}`"
+          >
+            <q-item-section>
+              <a class="block text-secondary text-strike ellipsis text-decoration-none" :href="item" target="_blank">
+                {{ getHostName(item) }}
+              </a>
+            </q-item-section>
+            <q-item-section avatar>
+              <q-btn @click="onAddRss(item)" round dense flat icon="add" />
+            </q-item-section>
+          </q-item>
         </q-list>
       </q-scroll-area>
     </q-drawer>
 
     <q-drawer
-      v-model="rightDrawerOpen"
+      :value="settings"
+      @hide="CLOSE_SETTINGS"
       bordered
       side="right"
       content-class="bg-grey-2"
@@ -80,6 +100,26 @@
           <q-item>
             <q-item-section>
               <span class="text-h5">Settings</span>
+            </q-item-section>
+          </q-item>
+          <q-item>
+            <q-item-section>
+              <q-select
+                color="teal"
+                label="Adds tags with some name"
+                :value="tags"
+                @input="changeTags"
+                use-input
+                use-chips
+                multiple
+                hide-dropdown-icon
+                input-debounce="0"
+                new-value-mode="add-unique"
+              >
+                <template v-slot:append>
+                  <q-icon name="add" />
+                </template>
+              </q-select>
             </q-item-section>
           </q-item>
           <q-item>
@@ -130,7 +170,7 @@
 
 <script>
 import { openURL } from 'quasar'
-import { mapState, mapMutations, mapGetters } from 'vuex'
+import { mapState, mapMutations, mapGetters, mapActions } from 'vuex'
 
 export default {
   name: 'default-layout',
@@ -138,8 +178,6 @@ export default {
     return {
       source: '',
       buffer: {},
-      leftDrawerOpen: this.$q.platform.is.desktop,
-      rightDrawerOpen: false,
       confirm: false
     }
   },
@@ -149,7 +187,11 @@ export default {
       GET_FEED: 'GET_FEED'
     }),
     ...mapState({
-      imageDisabled: state => state.imageDisabled
+      imageDisabled: state => state.imageDisabled,
+      popular: state => state.popular,
+      tags: state => state.tags,
+      menu: state => state.menu,
+      settings: state => state.settings
     })
   },
   watch: {
@@ -164,16 +206,40 @@ export default {
     ...mapMutations({
       SET_SOURCES: 'SET_SOURCES',
       REMOVE_SOURCE: 'REMOVE_SOURCE',
-      TOGGLE_IMAGE_ALLOWED: 'TOGGLE_IMAGE_ALLOWED'
+      TOGGLE_IMAGE_ALLOWED: 'TOGGLE_IMAGE_ALLOWED',
+      CLOSE_MENU: 'CLOSE_MENU',
+      CLOSE_SETTINGS: 'CLOSE_SETTINGS'
+    }),
+    ...mapActions({
+      getRssSources: 'getRssSources',
+      changeTags: 'changeTags',
+      toggleMenu: 'toggleMenu',
+      toggleSettings: 'toggleSettings'
     }),
     openURL,
-    onAddRss () {
-      if (this.source) {
-        this.SET_SOURCES({
-          url: this.source,
-          key: this.getHostName(this.source)
+    onAddRss (source) {
+      if (source) {
+        this.$q.loading.show()
+        this.getRssSources(source).then(() => {
+          const key = this.getHostName(source)
+          this.SET_SOURCES({
+            url: source,
+            key
+          })
+          source = ''
+
+          this.$q.notify({
+            message: `Add feed ${key}`,
+            color: 'positive'
+          })
+        }).catch(err => {
+          this.$q.notify({
+            message: err,
+            color: 'negative'
+          })
+        }).finally(() => {
+          this.$q.loading.hide()
         })
-        this.source = ''
       }
     },
     onConfirm (item, index) {

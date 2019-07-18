@@ -61,7 +61,9 @@ module.exports = function (ctx) {
         'QScrollArea',
         'QPullToRefresh',
         'QToggle',
-        'QBadge'
+        'QBadge',
+        'QSelect',
+        'QBanner'
       ],
 
       directives: [
@@ -71,7 +73,8 @@ module.exports = function (ctx) {
 
       // Quasar plugins
       plugins: [
-        'Notify'
+        'Notify',
+        'Loading'
       ]
     },
 

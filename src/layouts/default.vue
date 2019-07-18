@@ -232,9 +232,9 @@ export default {
             message: `Add feed ${key}`,
             color: 'positive'
           })
-        }).catch(err => {
+        }).catch(() => {
           this.$q.notify({
-            message: err,
+            message: 'Oops, errors...',
             color: 'negative'
           })
         }).finally(() => {
@@ -260,10 +260,13 @@ export default {
     async refresh (done) {
       try {
         await this.$store.dispatch('getRssContents')
-        done()
-      } catch (err) {
-        console.log(err)
+      } catch {
+        this.$q.notify({
+          message: 'Oops, errors...',
+          color: 'negative'
+        })
       }
+      done()
     }
   },
   async created () {

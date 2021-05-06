@@ -15,7 +15,7 @@
     "axios": "^0.21.1",
     "quasar": "^1.0.0",
     "rss-parser": "^3.7.2",
-    "sanitize-html": "^1.20.1",
+    "sanitize-html": "^2.3.2",
     "vue-i18n": "^8.0.0"
   },
   "devDependencies": {
